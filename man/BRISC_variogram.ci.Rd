@@ -8,25 +8,26 @@
 }
 
 \usage{
-BRISC_variogram.ci(BRISC_Out, confidence_est, plot.variogram = FALSE)
+BRISC_variogram.ci(BRISC_Out, confidence_est,
+                   plot.variogram = FALSE)
 }
 
 \arguments{
 
-  \item{BRISC_Out}{an object of class "BRISC_Out", obtained as an output of \code{BRISC_estimation}. }
+  \item{BRISC_Out}{an object of class \code{BRISC_Out}, obtained as an output of \cr \code{BRISC_estimation}. }
 
-  \item{confidence_est}{Bootstrp sample of the Theta parameters, obtained from \code{BRISC_bootstrap}. }
+  \item{confidence_est}{bootstrp sample of the Theta parameters, obtained from \code{BRISC_bootstrap}. }
 
-  \item{plot.variogram}{if TRUE, plots the variogram and the associated confidence region. Default is FALSE}
+  \item{plot.variogram}{if \code{TRUE}, plots the variogram and the associated confidence region. Default is \code{FALSE}. }
 
 }
 
 \value{
   A list comprising of the following:
 
-  \item{variogram}{Variogram and associated confidence region corresponding to lag ranging from 0 to 20, evaluated at 0.01 frequency. }
+  \item{variogram}{variogram and associated confidence region corresponding to lag ranging from 0 to 20, evaluated at 0.01 frequency. }
 
-  \item{Plot}{Plots the Variogram and associated confidence region with legends. }
+  \item{Plot}{plots the Variogram and associated confidence region with legends. }
 
 }
 
@@ -65,9 +66,11 @@ w <- rmvn(1, rep(0,n), sigma.sq*R)
 
 y <- rnorm(n, x\%*\%B + w, sqrt(tau.sq))
 
-estimation_result <- BRISC_estimation(coords, x, y)
+estimation_result <- BRISC_estimation(coords, y, x)
 bootstrap_result <- BRISC_bootstrap(estimation_result, n_boot = 10)
-varg <- BRISC_variogram.ci(estimation_result, bootstrap_result$boot.Theta, plot.variogram = TRUE)
+varg <- BRISC_variogram.ci(estimation_result,
+                           bootstrap_result$boot.Theta,
+                           plot.variogram = TRUE)
 
 }
 

@@ -1,8 +1,15 @@
-BRISC_prediction <- function(BRISC_Out, X.0, coords.0, n_omp = 1, verbose = TRUE){
+BRISC_prediction <- function(BRISC_Out, coords.0, X.0 = NULL, n_omp = 1, verbose = TRUE, tol = 12){
 
 
-  if(missing(BRISC_Out)){stop("error: BRISC_bootstrap expects BRISC_Out\n")}
+  if(missing(BRISC_Out)){stop("error: BRISC_prediction expects BRISC_Out\n")}
 
+  n <- nrow(coords.0)
+  if(is.null(X.0)){
+    X.0 <- matrix(1, nrow = n, ncol = 1)
+  }
+
+  coords.0 <- round(coords.0, tol)
+  X.0 <- round(X.0, tol)
 
   X <- BRISC_Out$X
   y <- BRISC_Out$y
@@ -10,7 +17,6 @@ BRISC_prediction <- function(BRISC_Out, X.0, coords.0, n_omp = 1, verbose = TRUE
   coords <- BRISC_Out$coords
 
   n.omp.threads <- as.integer(n_omp)
-  n <- nrow(X)
   p <- ncol(X)
   Theta <- as.matrix(BRISC_Out$Theta)
   dim(Theta) <- c(length(BRISC_Out$Theta),1)
@@ -58,34 +64,15 @@ BRISC_prediction <- function(BRISC_Out, X.0, coords.0, n_omp = 1, verbose = TRUE
   p5 <- proc.time()
 
   out <- .Call("BRISC_predictioncpp", X, y, coords, n, p, n.neighbors, X.0, coords.0, q, nn.indx.0,
-               Beta, Theta, cov.model.indx, n.omp.threads, verbose)
+               Beta, Theta, cov.model.indx, n.omp.threads, verbose, PACKAGE = "BRISC")
   p6 <- proc.time()
 
   output <- list()
   output$prediction <- out$p.y.0[,1]
 
-
-  vecMatch <- function(x, want) {
-    isTRUE(all.equal(x, want))
-  }
-  coords_unmask <- coords
-  coords_unmask.0 <- coords.0
-  coords_rows<- split(t(coords_unmask), rep(1:nrow(coords_unmask), each = ncol(coords_unmask)))
-  coords_rows.0<- split(t(coords_unmask.0), rep(1:nrow(coords_unmask.0), each = ncol(coords_unmask.0)))
-  matching_loc <- function(x, coords_rows){
-    any(sapply(coords_rows, vecMatch, x))
-  }
-  loc_matching <- 1- as.numeric(sapply(coords_rows.0, matching_loc, coords_rows))
-
   result_new <- matrix(0,length(output$prediction),2)
-  for(i in 1:length(result_new[,1])){
-    if(loc_matching[i] == 1){
-      result_new[i,] <- c(out$p.y.0[,1][i] - 1.96 * out$var.y.0[,1][i], out$p.y.0[,1][i] + 1.96 * out$var.y.0[,1][i])
-    }
-    if(loc_matching[i] == 0){
-      result_new[i,] <- c(out$p.y.0[,1][i] - 1.96 * sqrt(Theta[2]), out$p.y.0[,1][i] + 1.96 * sqrt(Theta[2]))
-    }
-  }
+  result_new[,1] <- out$p.y.0[,1] - 1.96 * out$var.y.0[,1]
+  result_new[,2] <- out$p.y.0[,1] + 1.96 * out$var.y.0[,1]
 
   output$prediction.ci <- result_new
   output$prediction.time <- p6 - p5
