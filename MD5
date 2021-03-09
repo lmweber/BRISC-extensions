@@ -1,4 +1,4 @@
-ab9236e28fce5fa2afcfa3168ee3eab3 *DESCRIPTION
+748799d316e66d6cd2743e8db637d734 *DESCRIPTION
 5bb6309ded6eaf664cb4926ca3b99534 *NAMESPACE
 85299f8ee492c5af34c38dd196c3a032 *R/BRISC_correlation.R
 c2b37a3fc7cd9c8066a202ba639332c8 *R/BRISC_decorrelation.R
@@ -9,7 +9,7 @@ bcb5ade7dbfc2dc45c876f64f5028286 *R/BRISC_simulation.R
 d0ba7637c62836997ac072f725437194 *R/bootstrap_brisc.R
 3bcb2643e74a1de6b90e8e9ad6e43876 *R/estimation.R
 8bef4ffa22e3eccc82da4be20b2d0d71 *R/evaluate.R
-de24a11c22bc17e668485fb70f899dbc *R/prediction.R
+fa8fd2cd171cebf6284e081569f4e58a *R/prediction.R
 6d0010bd9285f05c42d27ec21d98f2d7 *R/zzz.R
 c3cded853a2388ad53569a7105d1c1e3 *cleanup
 6cef7c0220978878c3cf20f45db21772 *configure
