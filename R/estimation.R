@@ -1,6 +1,6 @@
 BRISC_estimation <- function(coords, y, x = NULL, sigma.sq = 1, tau.sq = 0.1, phi = 1, nu = 1.5, n.neighbors = 15, n_omp = 1,
                              order = "Sum_coords", cov.model = "exponential", search.type = "tree", stabilization = NULL,
-                             pred.stabilization = 1e-8, verbose = TRUE, eps = 2e-05, nugget_status = 1, tol = 12
+                             pred.stabilization = 1e-8, verbose = TRUE, eps = 2e-05, nugget_status = 1, ordering = NULL, tol = 12
 ){
   n <- nrow(coords)
   if(is.null(x)){
@@ -29,20 +29,25 @@ Please check the new documentation with ?BRISC_estimation.')
   coords <- round(coords, tol)
   x <- round(x, tol)
   y <- round(y, tol)
-  if(order != "AMMD" && order != "Sum_coords"){
-    stop("error: Please insert a valid ordering scheme choice given by 1 or 2.")
-  }
 
   if(tau.sq < 0 ){stop("error: tau.sq must be non-negative")}
   if(sigma.sq < 0 ){stop("error: sigma.sq must be non-negative")}
   if(phi < 0 ){stop("error: phi must be non-negative")}
   if(nu < 0 ){stop("error: nu must be non-negative")}
 
-  if(verbose == TRUE){
-    cat(paste(("----------------------------------------"), collapse="   "), "\n"); cat(paste(("\tOrdering Coordinates"), collapse="   "), "\n")
+  if(is.null(ordering)){
+    if(order != "AMMD" && order != "Sum_coords"){
+      stop("error: Please insert a valid ordering scheme choice given by 1 or 2.")
     }
-  if(order == "AMMD"){ord <- orderMaxMinLocal(coords)}
-  if(order == "Sum_coords"){ord <- order(coords[,1] + coords[,2])}
+    if(verbose == TRUE){
+      cat(paste(("----------------------------------------"), collapse="   "), "\n"); cat(paste(("\tOrdering Coordinates"), collapse="   "), "\n")
+    }
+    if(order == "AMMD"){ord <- orderMaxMinLocal(coords)}
+    if(order == "Sum_coords"){ord <- order(coords[,1] + coords[,2])}
+  }
+  if(!is.null(ordering)){
+    ord <- ordering
+  }
   coords <- coords[ord,]
 
   ##Input data and ordering
@@ -152,6 +157,8 @@ Please check the new documentation with ?BRISC_estimation.')
     names(Beta)[i] <- name_beta
   }
 
+  llk <- -(result$log_likelihood + n + n * log(2*pi))/2
+
   result_list <- list ()
   result_list$ord <- ord
   result_list$coords <- coords
@@ -163,6 +170,7 @@ Please check the new documentation with ?BRISC_estimation.')
   result_list$init <- initiate
   result_list$Beta <- Beta
   result_list$Theta <- Theta
+  result_list$log_likelihood <- llk
   result_list$estimation.time <- p2 - p1
   result_list$BRISC_Object <- result
   class(result_list) <- "BRISC_Out"
