@@ -7,6 +7,7 @@ export(BRISC_variogram.ci)
 export(BRISC_correlation)
 export(BRISC_simulation)
 export(BRISC_decorrelation)
+export(BRISC_order)
 
 import(RANN, parallel, stats, rdist, matrixStats, pbapply)
 importFrom("graphics", "legend", "lines", "plot")
