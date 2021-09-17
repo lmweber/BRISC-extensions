@@ -133,7 +133,7 @@ extern "C" {
     }
 
 
-    void processed_output(double *X, double *y, double *D, double *d, int *nnIndx, int *nnIndxLU, int *CIndx, int n, int p, int m, double *theta, int covModel, int j, int nThreads, double optimized_likelihod, double *B, double *F, double *beta, double *Xbeta, double *norm_residual, double *theta_fp, double fix_nugget){
+    double processed_output(double *X, double *y, double *D, double *d, int *nnIndx, int *nnIndxLU, int *CIndx, int n, int p, int m, double *theta, int covModel, int j, int nThreads, double optimized_likelihod, double *B, double *F, double *beta, double *Xbeta, double *norm_residual, double *theta_fp, double fix_nugget){
 
         char const *ntran = "N";
         int nIndx = static_cast<int>(static_cast<double>(1+m)/2*m+(n-m-1)*m);
@@ -205,6 +205,8 @@ extern "C" {
         if (covModel == 2) {
             theta_fp[3] = theta[2];
         }
+
+        return(optimized_likelihod);
     }
 
 
@@ -632,6 +634,8 @@ extern "C" {
 
         SEXP D_r; PROTECT(D_r = allocVector(REALSXP, j_nngp)); nProtect++; D_nngp = REAL(D_r);
 
+        SEXP llk_r; PROTECT(llk_r = allocVector(REALSXP, 1)); nProtect++; double* llk_nngp = REAL(llk_r);
+
         for(i = 0; i < n_nngp; i++){
             for(k = 0; k < nnIndxLU_nngp[n_nngp+i]; k++){
                 for(l = 0; l <= k; l++){
@@ -704,11 +708,13 @@ extern "C" {
 
         SEXP theta_fp_r; PROTECT(theta_fp_r = allocVector(REALSXP, nTheta_full)); nProtect++; double *theta_fp_nngp = REAL(theta_fp_r);
 
-        processed_output(X_nngp, y_nngp, D_nngp, d_nngp, nnIndx_nngp, nnIndxLU_nngp, CIndx_nngp, n_nngp, p_nngp, m_nngp, theta_nngp, covModel_nngp, j_nngp, nThreads_nngp, fx, B_nngp, F_nngp, beta_nngp, Xbeta_nngp, norm_residual_nngp, theta_fp_nngp, fix_nugget_nngp);
+        llk_nngp[0] = processed_output(X_nngp, y_nngp, D_nngp, d_nngp, nnIndx_nngp, nnIndxLU_nngp, CIndx_nngp, n_nngp, p_nngp, m_nngp, theta_nngp, covModel_nngp, j_nngp, nThreads_nngp, fx, B_nngp, F_nngp, beta_nngp, Xbeta_nngp, norm_residual_nngp, theta_fp_nngp, fix_nugget_nngp);
+
+
 
         //return stuff
         SEXP result_r, resultName_r;
-        int nResultListObjs = 12;
+        int nResultListObjs = 13;
 
 
 
@@ -751,6 +757,9 @@ extern "C" {
 
         SET_VECTOR_ELT(result_r, 11, j_r);
         SET_VECTOR_ELT(resultName_r, 11, mkChar("Length.D"));
+
+        SET_VECTOR_ELT(result_r, 12, llk_r);
+        SET_VECTOR_ELT(resultName_r, 12, mkChar("log_likelihood"));
 
 
         namesgets(result_r, resultName_r);
