@@ -1,7 +1,7 @@
 BRISC_order <- function(coords, order = "Sum_coords", verbose = TRUE){
   n <- nrow(coords)
   if(!is.matrix(coords)){stop("error: coords must n-by-2 matrix of xy-coordinate locations")}
-  if(order == "AMMD" && length(y) < 65){stop("error: Number of data points must be atleast 65 to use AMMD")}
+  if(order == "AMMD" && nrow(coords) < 65){stop("error: Number of data points must be atleast 65 to use AMMD")}
   if(ncol(coords) != 2 || nrow(coords) != n){
     stop("error: either the coords have more than two columns or the number of rows is different than
          data used in the model formula")
