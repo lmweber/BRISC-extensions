@@ -740,26 +740,28 @@ extern "C" {
         SET_VECTOR_ELT(result_r, 5, Xbeta_r);
         SET_VECTOR_ELT(resultName_r, 5, mkChar("Xbeta"));
 
-        SET_VECTOR_ELT(result_r, 6, nnIndxLU_r);
-        SET_VECTOR_ELT(resultName_r, 6, mkChar("nnIndxLU"));
+        SET_VECTOR_ELT(result_r, 6, llk_r);
+        SET_VECTOR_ELT(resultName_r, 6, mkChar("log_likelihood"));
 
-        SET_VECTOR_ELT(result_r, 7, CIndx_r);
-        SET_VECTOR_ELT(resultName_r, 7, mkChar("CIndx"));
 
-        SET_VECTOR_ELT(result_r, 8, D_r);
-        SET_VECTOR_ELT(resultName_r, 8, mkChar("D"));
+        SET_VECTOR_ELT(result_r, 7, nnIndxLU_r);
+        SET_VECTOR_ELT(resultName_r, 7, mkChar("nnIndxLU"));
 
-        SET_VECTOR_ELT(result_r, 9, d_r);
-        SET_VECTOR_ELT(resultName_r, 9, mkChar("d"));
+        SET_VECTOR_ELT(result_r, 8, CIndx_r);
+        SET_VECTOR_ELT(resultName_r, 8, mkChar("CIndx"));
 
-        SET_VECTOR_ELT(result_r, 10, nnIndx_r);
-        SET_VECTOR_ELT(resultName_r, 10, mkChar("nnIndx"));
+        SET_VECTOR_ELT(result_r, 9, D_r);
+        SET_VECTOR_ELT(resultName_r, 9, mkChar("D"));
 
-        SET_VECTOR_ELT(result_r, 11, j_r);
-        SET_VECTOR_ELT(resultName_r, 11, mkChar("Length.D"));
+        SET_VECTOR_ELT(result_r, 10, d_r);
+        SET_VECTOR_ELT(resultName_r, 10, mkChar("d"));
 
-        SET_VECTOR_ELT(result_r, 12, llk_r);
-        SET_VECTOR_ELT(resultName_r, 12, mkChar("log_likelihood"));
+        SET_VECTOR_ELT(result_r, 11, nnIndx_r);
+        SET_VECTOR_ELT(resultName_r, 11, mkChar("nnIndx"));
+
+        SET_VECTOR_ELT(result_r, 12, j_r);
+        SET_VECTOR_ELT(resultName_r, 12, mkChar("Length.D"));
+
 
 
         namesgets(result_r, resultName_r);
@@ -1093,6 +1095,326 @@ extern "C" {
 
         return(result_r);
     }
+
+
+    SEXP BRISC_neighborcpp(SEXP n_r, SEXP m_r, SEXP coords_r,
+                           SEXP sType_r, SEXP nThreads_r, SEXP verbose_r){
+
+        int i, k, l, nProtect=0;
+
+        //get args
+        n_nngp = INTEGER(n_r)[0];
+        m_nngp = INTEGER(m_r)[0];
+        double *coords = REAL(coords_r);
+
+        std::string corName = getCorName(covModel_nngp);
+
+        nThreads_nngp = INTEGER(nThreads_r)[0];
+        int verbose = INTEGER(verbose_r)[0];
+
+
+
+#ifdef _OPENMP
+        omp_set_num_threads(nThreads_nngp);
+#else
+        if(nThreads_nngp > 1){
+            warning("n.omp.threads > %i, but source not compiled with OpenMP support.", nThreads_nngp);
+            nThreads_nngp = 1;
+        }
+#endif
+
+        if(verbose){
+            Rprintf("----------------------------------------\n");
+            Rprintf("\tModel description\n");
+            Rprintf("----------------------------------------\n");
+            Rprintf("Using %i nearest neighbors.\n\n", m_nngp);
+#ifdef _OPENMP
+            Rprintf("\nSource compiled with OpenMP support and model fit using %i thread(s).\n", nThreads_nngp);
+#else
+            Rprintf("\n\nSource not compiled with OpenMP support.\n");
+#endif
+        }
+
+
+        //allocated for the nearest neighbor index vector (note, first location has no neighbors).
+        int nIndx = static_cast<int>(static_cast<double>(1+m_nngp)/2*m_nngp+(n_nngp-m_nngp-1)*m_nngp);
+        SEXP nnIndx_r; PROTECT(nnIndx_r = allocVector(INTSXP, nIndx)); nProtect++; nnIndx_nngp = INTEGER(nnIndx_r);
+        SEXP d_r; PROTECT(d_r = allocVector(REALSXP, nIndx)); nProtect++; d_nngp = REAL(d_r);
+
+        SEXP nnIndxLU_r; PROTECT(nnIndxLU_r = allocVector(INTSXP, 2*n_nngp)); nProtect++; nnIndxLU_nngp = INTEGER(nnIndxLU_r); //first column holds the nnIndx index for the i-th location and the second columns holds the number of neighbors the i-th location has (the second column is a bit of a waste but will simplifying some parallelization).
+
+        //make the neighbor index
+        if(verbose){
+            Rprintf("----------------------------------------\n");
+            Rprintf("\tBuilding neighbor index\n");
+#ifdef Win32
+            R_FlushConsole();
+#endif
+        }
+
+        if(INTEGER(sType_r)[0] == 0){
+            mkNNIndx(n_nngp, m_nngp, coords, nnIndx_nngp, d_nngp, nnIndxLU_nngp);
+        }
+        if(INTEGER(sType_r)[0] == 1){
+            mkNNIndxTree0(n_nngp, m_nngp, coords, nnIndx_nngp, d_nngp, nnIndxLU_nngp);
+        }else{
+            mkNNIndxCB(n_nngp, m_nngp, coords, nnIndx_nngp, d_nngp, nnIndxLU_nngp);
+        }
+
+
+        SEXP CIndx_r; PROTECT(CIndx_r = allocVector(INTSXP, 2*n_nngp)); nProtect++; CIndx_nngp = INTEGER(CIndx_r); //index for D and C.
+        for(i = 0, j_nngp = 0; i < n_nngp; i++){//zero should never be accessed
+            j_nngp += nnIndxLU_nngp[n_nngp+i]*nnIndxLU_nngp[n_nngp+i];
+            if(i == 0){
+                CIndx_nngp[n_nngp+i] = 0;
+                CIndx_nngp[i] = 0;
+            }else{
+                CIndx_nngp[n_nngp+i] = nnIndxLU_nngp[n_nngp+i]*nnIndxLU_nngp[n_nngp+i];
+                CIndx_nngp[i] = CIndx_nngp[n_nngp+i-1] + CIndx_nngp[i-1];
+            }
+        }
+
+        SEXP j_r; PROTECT(j_r = allocVector(INTSXP, 1)); nProtect++; INTEGER(j_r)[0] = j_nngp;
+
+        SEXP D_r; PROTECT(D_r = allocVector(REALSXP, j_nngp)); nProtect++; D_nngp = REAL(D_r);
+
+        for(i = 0; i < n_nngp; i++){
+            for(k = 0; k < nnIndxLU_nngp[n_nngp+i]; k++){
+                for(l = 0; l <= k; l++){
+                    D_nngp[CIndx_nngp[i]+l*nnIndxLU_nngp[n_nngp+i]+k] = dist2(coords[nnIndx_nngp[nnIndxLU_nngp[i]+k]], coords[n_nngp+nnIndx_nngp[nnIndxLU_nngp[i]+k]], coords[nnIndx_nngp[nnIndxLU_nngp[i]+l]], coords[n_nngp+nnIndx_nngp[nnIndxLU_nngp[i]+l]]);
+                }
+            }
+        }
+
+        //return stuff
+        SEXP result_r, resultName_r;
+        int nResultListObjs = 6;
+
+
+
+        PROTECT(result_r = allocVector(VECSXP, nResultListObjs)); nProtect++;
+        PROTECT(resultName_r = allocVector(VECSXP, nResultListObjs)); nProtect++;
+
+
+        SET_VECTOR_ELT(result_r, 0, nnIndxLU_r);
+        SET_VECTOR_ELT(resultName_r, 0, mkChar("nnIndxLU"));
+
+        SET_VECTOR_ELT(result_r, 1, CIndx_r);
+        SET_VECTOR_ELT(resultName_r, 1, mkChar("CIndx"));
+
+        SET_VECTOR_ELT(result_r, 2, D_r);
+        SET_VECTOR_ELT(resultName_r, 2, mkChar("D"));
+
+        SET_VECTOR_ELT(result_r, 3, d_r);
+        SET_VECTOR_ELT(resultName_r, 3, mkChar("d"));
+
+        SET_VECTOR_ELT(result_r, 4, nnIndx_r);
+        SET_VECTOR_ELT(resultName_r, 4, mkChar("nnIndx"));
+
+        SET_VECTOR_ELT(result_r, 5, j_r);
+        SET_VECTOR_ELT(resultName_r, 5, mkChar("Length.D"));
+
+
+        namesgets(result_r, resultName_r);
+
+        //unprotect
+        UNPROTECT(nProtect);
+
+
+        return(result_r);
+    }
+
+    SEXP BRISC_estimateneighborcpp(SEXP y_r, SEXP X_r, SEXP p_r, SEXP n_r, SEXP m_r, SEXP coords_r, SEXP covModel_r, SEXP alphaSqStarting_r, SEXP phiStarting_r, SEXP nuStarting_r,
+                           SEXP sType_r, SEXP nThreads_r, SEXP verbose_r, SEXP eps_r, SEXP fix_nugget_r,
+                                       SEXP nnIndxLU_r, SEXP CIndx_r, SEXP D_r, SEXP d_r, SEXP nnIndx_r, SEXP j_r){
+
+        int i, k, l, nProtect=0;
+
+        //get args
+        y_nngp = REAL(y_r);
+        X_nngp = REAL(X_r);
+        p_nngp = INTEGER(p_r)[0];
+        n_nngp = INTEGER(n_r)[0];
+        m_nngp = INTEGER(m_r)[0];
+        eps_nngp = REAL(eps_r)[0];
+        fix_nugget_nngp = REAL(fix_nugget_r)[0];
+        double *coords = REAL(coords_r);
+
+        covModel_nngp = INTEGER(covModel_r)[0];
+        std::string corName = getCorName(covModel_nngp);
+
+        nThreads_nngp = INTEGER(nThreads_r)[0];
+        int verbose = INTEGER(verbose_r)[0];
+
+
+
+#ifdef _OPENMP
+        omp_set_num_threads(nThreads_nngp);
+#else
+        if(nThreads_nngp > 1){
+            warning("n.omp.threads > %i, but source not compiled with OpenMP support.", nThreads_nngp);
+            nThreads_nngp = 1;
+        }
+#endif
+
+        if(verbose){
+            Rprintf("----------------------------------------\n");
+            Rprintf("\tModel description\n");
+            Rprintf("----------------------------------------\n");
+            Rprintf("BRISC model fit with %i observations.\n\n", n_nngp);
+            Rprintf("Number of covariates %i (including intercept if specified).\n\n", p_nngp);
+            Rprintf("Using the %s spatial correlation model.\n\n", corName.c_str());
+            Rprintf("Using %i nearest neighbors.\n\n", m_nngp);
+#ifdef _OPENMP
+            Rprintf("\nSource compiled with OpenMP support and model fit using %i thread(s).\n", nThreads_nngp);
+#else
+            Rprintf("\n\nSource not compiled with OpenMP support.\n");
+#endif
+        }
+
+        //parameters
+        int nTheta;
+
+        if(corName != "matern"){
+            nTheta = 2;//tau^2 = 0, phi = 1
+        }else{
+            nTheta = 3;//tau^2 = 0, phi = 1, nu = 2;
+        }
+        //starting
+        double *theta = (double *) R_alloc (nTheta, sizeof(double));
+
+        theta[0] = REAL(alphaSqStarting_r)[0];
+        theta[1] = REAL(phiStarting_r)[0];
+
+        if(corName == "matern"){
+            theta[2] = REAL(nuStarting_r)[0];
+        }
+
+        //allocated for the nearest neighbor index vector (note, first location has no neighbors).
+        int nIndx = static_cast<int>(static_cast<double>(1+m_nngp)/2*m_nngp+(n_nngp-m_nngp-1)*m_nngp);
+        nnIndx_nngp = INTEGER(nnIndx_r);
+        d_nngp = REAL(d_r);
+
+        nnIndxLU_nngp = INTEGER(nnIndxLU_r); //first column holds the nnIndx index for the i-th location and the second columns holds the number of neighbors the i-th location has (the second column is a bit of a waste but will simplifying some parallelization).
+
+
+        CIndx_nngp = INTEGER(CIndx_r); //index for D and C.
+        INTEGER(j_r)[0] = j_nngp;
+
+        D_nngp = REAL(D_r);
+
+        SEXP llk_r; PROTECT(llk_r = allocVector(REALSXP, 1)); nProtect++; double* llk_nngp = REAL(llk_r);
+
+        if(verbose){
+            Rprintf("----------------------------------------\n");
+            Rprintf("\tPerforming optimization\n");
+#ifdef Win32
+            R_FlushConsole();
+#endif
+        }
+
+        int i_0, ret = 0;
+        int k_0 = 0;
+        lbfgsfloatval_t fx;
+        lbfgsfloatval_t *x = lbfgs_malloc(nTheta);
+        lbfgs_parameter_t param;
+
+        /* Initialize the variables. */
+        for (i_0 = 0;i_0 < nTheta; i_0++) {
+            x[i_0] = theta[i_0];
+        }
+
+        /* Initialize the parameters for the L-BFGS optimization. */
+        lbfgs_parameter_init(&param);
+        param.epsilon = 1e-2;
+        param.gtol = 0.9;
+        /*param.linesearch = LBFGS_LINESEARCH_BACKTRACKING;*/
+
+        /*
+         Start the L-BFGS optimization; this will invoke the callback functions
+         evaluate() and progress() when necessary.
+         */
+        ret = lbfgs(nTheta, x, &fx, evaluate, NULL, NULL, &param);
+
+        // Construct output
+        double *theta_nngp = (double *) R_alloc(nTheta, sizeof(double));
+        for (k_0 = 0; k_0 < nTheta; k_0++){
+            theta_nngp[k_0] = pow(x[k_0], 2.0);
+        }
+
+        // Clean up
+        lbfgs_free(x);
+
+        if(verbose){
+            Rprintf("----------------------------------------\n");
+            Rprintf("\tProcessing optimizers\n");
+            Rprintf("----------------------------------------\n");
+#ifdef Win32
+            R_FlushConsole();
+#endif
+        }
+
+        int nTheta_full = nTheta + 1;
+
+        SEXP B_r; PROTECT(B_r = allocVector(REALSXP, nIndx)); nProtect++; double *B_nngp = REAL(B_r);
+
+        SEXP F_r; PROTECT(F_r = allocVector(REALSXP, n_nngp)); nProtect++; double *F_nngp = REAL(F_r);
+
+        SEXP beta_r; PROTECT(beta_r = allocVector(REALSXP, p_nngp)); nProtect++; double *beta_nngp = REAL(beta_r);
+
+
+        SEXP Xbeta_r; PROTECT(Xbeta_r = allocVector(REALSXP, n_nngp)); nProtect++; double *Xbeta_nngp = REAL(Xbeta_r);
+
+        SEXP norm_residual_r; PROTECT(norm_residual_r = allocVector(REALSXP, n_nngp)); nProtect++; double *norm_residual_nngp = REAL(norm_residual_r);
+
+        SEXP theta_fp_r; PROTECT(theta_fp_r = allocVector(REALSXP, nTheta_full)); nProtect++; double *theta_fp_nngp = REAL(theta_fp_r);
+
+        llk_nngp[0] = processed_output(X_nngp, y_nngp, D_nngp, d_nngp, nnIndx_nngp, nnIndxLU_nngp, CIndx_nngp, n_nngp, p_nngp, m_nngp, theta_nngp, covModel_nngp, j_nngp, nThreads_nngp, fx, B_nngp, F_nngp, beta_nngp, Xbeta_nngp, norm_residual_nngp, theta_fp_nngp, fix_nugget_nngp);
+
+
+
+        //return stuff
+        SEXP result_r, resultName_r;
+        int nResultListObjs = 7;
+
+
+
+        PROTECT(result_r = allocVector(VECSXP, nResultListObjs)); nProtect++;
+        PROTECT(resultName_r = allocVector(VECSXP, nResultListObjs)); nProtect++;
+
+        SET_VECTOR_ELT(result_r, 0, B_r);
+        SET_VECTOR_ELT(resultName_r, 0, mkChar("B"));
+
+        SET_VECTOR_ELT(result_r, 1, F_r);
+        SET_VECTOR_ELT(resultName_r, 1, mkChar("F"));
+
+        SET_VECTOR_ELT(result_r, 2, beta_r);
+        SET_VECTOR_ELT(resultName_r, 2, mkChar("Beta"));
+
+        SET_VECTOR_ELT(result_r, 3, norm_residual_r);
+        SET_VECTOR_ELT(resultName_r, 3, mkChar("norm.residual"));
+
+        SET_VECTOR_ELT(result_r, 4, theta_fp_r);
+        SET_VECTOR_ELT(resultName_r, 4, mkChar("theta"));
+
+
+        SET_VECTOR_ELT(result_r, 5, Xbeta_r);
+        SET_VECTOR_ELT(resultName_r, 5, mkChar("Xbeta"));
+
+
+        SET_VECTOR_ELT(result_r, 6, llk_r);
+        SET_VECTOR_ELT(resultName_r, 6, mkChar("log_likelihood"));
+
+
+        namesgets(result_r, resultName_r);
+
+        //unprotect
+        UNPROTECT(nProtect);
+
+
+        return(result_r);
+    }
+
 }
 
 
