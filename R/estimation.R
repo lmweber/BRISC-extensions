@@ -1,6 +1,6 @@
 BRISC_estimation <- function(coords, y, x = NULL, sigma.sq = 1, tau.sq = 0.1, phi = 1, nu = 1.5, n.neighbors = 15, n_omp = 1,
                              order = "Sum_coords", cov.model = "exponential", search.type = "tree", stabilization = NULL,
-                             pred.stabilization = 1e-8, verbose = TRUE, eps = 2e-05, nugget_status = 1, ordering = NULL, tol = 12
+                             pred.stabilization = 1e-8, verbose = TRUE, eps = 2e-05, nugget_status = 1, ordering = NULL, neighbor = NULL, tol = 12
 ){
   n <- nrow(coords)
   if(is.null(x)){
@@ -138,7 +138,31 @@ Please check the new documentation with ?BRISC_estimation.')
 
 
   ##estimtion
-  result <- .Call("BRISC_estimatecpp", y, X, p, n, n.neighbors, coords, cov.model.indx, alpha.sq.starting, phi.starting, nu.starting, search.type.indx, n.omp.threads, verbose, eps, fix_nugget, PACKAGE = "BRISC")
+  if(is.null(neighbor)){
+    result <- .Call("BRISC_estimatecpp", y, X, p, n, n.neighbors, coords, cov.model.indx, alpha.sq.starting, phi.starting, nu.starting, search.type.indx, n.omp.threads, verbose, eps, fix_nugget, PACKAGE = "BRISC")
+  }
+
+  if(!is.null(neighbor)){
+    nnIndxLU <- neighbor$nnIndxLU
+    storage.mode(nnIndxLU) <- "integer"
+    CIndx <- neighbor$CIndx
+    storage.mode(CIndx) <- "integer"
+    D <- neighbor$D
+    storage.mode(D) <- "double"
+    d <- neighbor$d
+    storage.mode(d) <- "double"
+    nnIndx <- neighbor$nnIndx
+    storage.mode(nnIndx) <- "integer"
+    j <- neighbor$j
+    storage.mode(j) <- "integer"
+
+
+    result_short <- .Call("BRISC_estimateneighborcpp", y, X, p, n, n.neighbors, coords, cov.model.indx, alpha.sq.starting, phi.starting, nu.starting, search.type.indx, n.omp.threads, verbose, eps, fix_nugget,
+                    nnIndxLU, CIndx, D, d, nnIndx, j, PACKAGE = "BRISC")
+    result <- append(result_short, neighbor)
+
+  }
+
 
   p2 <- proc.time()
 
