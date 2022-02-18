@@ -4,7 +4,7 @@
 
 \description{
   The function \code{BRISC_neighbor} creates the set of nearest neighbors for a given set of coordinates, which can be used as an input
-  for \code{"neighbor"} argument in \code{BRISC_estimation}. This is especially useful for avoiding often computaionally
+  for \code{"neighbor"} argument in \code{BRISC_estimation}. This is especially useful for avoiding often computationally
   intensive nearest neighbor finding scheme in case of multiple application of \code{BRISC_estimation} on a fixed set of
   coordinates.
 }
@@ -51,7 +51,7 @@ BRISC_neighbor(coords, n.neighbors = 15, n_omp = 1,
 
 
 \value{
- A list containing informaion regarding nearest neighbors which can be used as an input
+ A list containing information regarding nearest neighbors which can be used as an input
   for \code{"neighbor"} argument in \code{BRISC_estimation}.
 }
 
