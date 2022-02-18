@@ -123,6 +123,8 @@ BRISC_estimation(coords, y, x = NULL, sigma.sq = 1,
   \item{Beta}{estimate of beta. }
 
   \item{Theta}{estimate of parameters of covarinace model. }
+  
+  \item{log_likelihood}{value of Vecchia’s approximate log likelihood with parameter estimates. }
 
    \item{estimation.time}{time (in seconds) required to perform the model fitting after ordering and preprocessing data in \code{R},
                           reported using \code{proc.time()}. }
