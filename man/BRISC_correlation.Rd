@@ -1,6 +1,6 @@
 \name{BRISC_correlation}
 \alias{BRISC_correlation}
-\title{Function for create correlated data with BRISC}
+\title{Function for simulating correlated data with BRISC}
 
 \description{
   The function \code{BRISC_correlation} creates correlated data (known structure) using Nearest Neighbor
@@ -48,10 +48,9 @@ BRISC_correlation(coords, sim, sigma.sq = 1, tau.sq = 0, phi = 1,
                      \code{"brute"}, \code{"tree"} and \code{"cb"}. \cr \code{"brute"} and \code{"tree"} provide the same result, though
                      \code{"tree"} should be faster. \code{"cb"} implements fast code book search described in Ra and Kim (1993)
                      modified for NNGP. If locations do not have identical coordinate values on the axis used for the nearest neighbor
-                     ordering (see \code{order} argument) then \code{"cb"} and \code{"brute"} should produce identical neighbor sets.
-                     However, if there are identical coordinate values on the axis used for nearest neighbor ordering, then \code{"cb"}
-                     and \code{"brute"} might produce different, but equally valid, neighbor sets, e.g., if data are on a grid.
-                     Default value is \code{"tree"}. }
+                     determination, then \code{"cb"} and \code{"brute"} should produce identical neighbor sets. However, if there are
+                     identical coordinate values on the axis used for nearest neighbor determination, then \code{"cb"} and \code{"brute"}
+                     might produce different, but equally valid neighbor sets, e.g., if data are on a grid. Default value is \code{"tree"}. }
 
     \item{stabilization}{when we use a very smooth covarince model (lower values of phi for spherical and Gaussian
                       covariance and low phi and high nu for Matern covarinace) in absence of a non-negligble nugget, the correlation process may fail

@@ -33,7 +33,8 @@ BRISC_estimation(coords, y, x = NULL, sigma.sq = 1,
                  stabilization = NULL,
                  pred.stabilization = 1e-8,
                  verbose = TRUE, eps = 2e-05,
-                 nugget_status = 1, tol = 12)
+                 nugget_status = 1, ordering = NULL,
+                 neighbor = NULL, tol = 12)
 }
 
 \arguments{
@@ -61,7 +62,7 @@ BRISC_estimation(coords, y, x = NULL, sigma.sq = 1,
 
   \item{order}{keyword that specifies the ordering scheme to be used in ordering the observations. Supported keywords are:
                \code{"AMMD"} and \code{"Sum_coords"} for approximate Maximum Minimum Distance and sum of coordinate based ordering,
-               respectively. Default value is \code{"Sum_coords"}. \eqn{n > 65} is required for \code{"AMMD"}.}
+               respectively. Default value is \code{"Sum_coords"}. \eqn{n > 65} is required for \code{"AMMD"}. Ignored, if \code{"ordering"} in not \code{NULL}. }
 
   \item{cov.model}{keyword that specifies the covariance function to be used in modelling the spatial dependence structure
                    among the observations. Supported keywords are: \code{"exponential"}, \code{"matern"}, \code{"spherical"}, and \code{"gaussian"}
@@ -74,7 +75,7 @@ BRISC_estimation(coords, y, x = NULL, sigma.sq = 1,
                      ordering (see \code{order} argument) then \code{"cb"} and \code{"brute"} should produce identical neighbor sets.
                      However, if there are identical coordinate values on the axis used for nearest neighbor ordering, then \code{"cb"}
                      and \code{"brute"} might produce different, but equally valid, neighbor sets, e.g., if data are on a grid.
-                     Default value is \code{"tree"}. }
+                     Default value is \code{"tree"}. Ignored, if \code{"neighbor"} in not \code{NULL}. }
 
   \item{stabilization}{when the spatial errors are generated from a very smooth covarince model (lower values of phi for spherical and Gaussian
                       covariance and low phi and high nu for Matern covarinace), the estimation process may fail due to computational
@@ -91,6 +92,10 @@ BRISC_estimation(coords, y, x = NULL, sigma.sq = 1,
   \item{eps}{tolerance to be used in centred finite difference approximation of derivatives. Default value is 2e-05. }
 
   \item{nugget_status}{if \code{nugget_status = 0}, \code{tau.sq} is fixed to 0, if \code{nugget_status = 1} \code{tau.sq} is estimated. Default value is 1. }
+
+    \item{ordering}{if \code{NULL}, the observed locations will be ordered following the scheme in \code{"order"}. If not \code{NULL}, the ordering step is bypassed and the input must denotes the \eqn{n}{n} length integer vector of ordering of the input coordinates that is to be used as the ordering of the coordinates for determination of the set of nearest neighbors. Output from \code{BRISC_order} can be used here. }
+
+    \item{neighbor}{if \code{NULL}, neighbor set and corresponding information are created using the search type specified in \code{"search.type"}. If not \code{NULL}, the step of searching the neighbors is bypassed and the input must be an output from \code{BRISC_neighbor} with idential input in \code{"order"}, \code{"ordering"} and \code{"search.type"}. }
 
   \item{tol}{the input observation coordinates, response and the covariates are rounded to this many places after the decimal. The default value is 12. }
 }
