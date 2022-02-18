@@ -4,7 +4,7 @@
 
 \description{
   The function \code{BRISC_order} outputs the ordering for a set of coordinates, which can be used as an input for
-  \code{"ordering"} argument in \code{BRISC_estimation}. This is especially useful for avoiding often computaionally
+  \code{"ordering"} argument in \code{BRISC_estimation}. This is especially useful for avoiding often computationally
   intensive location ordering scheme in case of multiple application of \code{BRISC_estimation} on a fixed set of
   coordinates.
 }

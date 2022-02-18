@@ -8,13 +8,13 @@
   uses the sparse Cholesky representation of Vecchia’s likelihood developed in Datta et al., 2016.
   The Maximum Likelihood Estimates (MLE) of the parameters are used later for calculating the
   confidence interval via the \code{BRISC_bootstrap} (BRISC, Saha & Datta, 2018). \cr We recommend
-  using \code{BRISC_estimation} followed by \code{BRISC_bootstrap} to obtain the cofidence
+  using \code{BRISC_estimation} followed by \code{BRISC_bootstrap} to obtain the confidence
   intervals for the model parameters.
 
   The optimization is performed with C library of limited-memory BFGS
   libLBFGS: a library of Limited-memory Broyden-Fletcher-Goldfarb-Shanno (L-BFGS), \cr
   http://www.chokkan.org/software/liblbfgs/ (Naoaki Okazaki). For user convenience
-  the soure codes of the package libLBFGS are provided in the package. The code for
+  the source codes of the package libLBFGS are provided in the package. The code for
   the coordinate ordering method, approximate Maximum Minimum Distance (Guinness, 2018)
   is available in \cr https://github.com/joeguinness/gp_reorder/tree/master/R and is adopted
   with minor modification. Some code blocks are borrowed from the R package: spNNGP:
@@ -93,9 +93,9 @@ BRISC_estimation(coords, y, x = NULL, sigma.sq = 1,
 
   \item{nugget_status}{if \code{nugget_status = 0}, \code{tau.sq} is fixed to 0, if \code{nugget_status = 1} \code{tau.sq} is estimated. Default value is 1. }
 
-    \item{ordering}{if \code{NULL}, the observed locations will be ordered following the scheme in \code{"order"}. If not \code{NULL}, the ordering step is bypassed and the input must denotes the \eqn{n}{n} length integer vector of ordering of the input coordinates that is to be used as the ordering of the coordinates for determination of the set of nearest neighbors. Output from \code{BRISC_order} can be used here. }
+    \item{ordering}{if \code{NULL}, the observed locations will be ordered following the scheme in \code{"order"}. If not \code{NULL}, the ordering step is bypassed and the input must denote the \eqn{n}{n} length integer vector of ordering of the input coordinates that is to be used as the ordering of the coordinates for determination of the set of nearest neighbors. Output from \code{BRISC_order} can be used here. }
 
-    \item{neighbor}{if \code{NULL}, neighbor set and corresponding information are created using the search type specified in \code{"search.type"}. If not \code{NULL}, the step of searching the neighbors is bypassed and the input must be an output from \code{BRISC_neighbor} with idential input in \code{"order"}, \code{"ordering"} and \code{"search.type"}. }
+    \item{neighbor}{if \code{NULL}, neighbor set and corresponding information are created using the search type specified in \code{"search.type"}. If not \code{NULL}, the step of searching the neighbors is bypassed and the input must be an output from \code{BRISC_neighbor} with identical input in \code{"order"}, \code{"ordering"} and \code{"search.type"}. }
 
   \item{tol}{the input observation coordinates, response and the covariates are rounded to this many places after the decimal. The default value is 12. }
 }
